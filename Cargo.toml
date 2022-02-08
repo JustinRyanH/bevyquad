@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+miniquad = "0.3.0-alpha.43"
+bevy_app = "0.6.0"
+bevy_ecs = "0.6.0"
+bevy_math = "0.6.0"

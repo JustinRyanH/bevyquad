@@ -1,3 +1,13 @@
+pub mod mq;
+
+mod prelude {
+    pub(crate) use bevy_app::prelude::*;
+
+    pub use crate::mq::MiniquadPlugin;
+}
+
+use crate::prelude::*;
+
 fn main() {
-    println!("Hello, world!");
+    App::default().add_plugin(MiniquadPlugin::default()).run();
 }
