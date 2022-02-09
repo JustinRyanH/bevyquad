@@ -118,12 +118,12 @@ pub(crate) fn set_keyboard(input: &mut KeyboardInput, keycode: KeyCode, state: B
         KeyCode::LeftShift => input.left_shift = state,
         KeyCode::LeftControl => input.left_ctrl = state,
         KeyCode::LeftAlt => input.left_alt = state,
-        KeyCode::LeftSuper => todo!(),
+        KeyCode::LeftSuper => input.left_super = state,
         KeyCode::RightShift => input.right_shift = state,
         KeyCode::RightControl => input.right_ctrl = state,
         KeyCode::RightAlt => input.right_alt = state,
-        KeyCode::RightSuper => todo!(),
-        KeyCode::Menu => todo!(),
+        KeyCode::RightSuper => input.right_super = state,
+        KeyCode::Menu => input.menu = state,
         KeyCode::Unknown => {}
     }
 }

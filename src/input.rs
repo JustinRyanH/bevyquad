@@ -46,9 +46,12 @@ pub struct KeyboardInput {
     pub left_ctrl: ButtonState,
     pub left_shift: ButtonState,
     pub left_alt: ButtonState,
+    pub left_super: ButtonState,
     pub right_ctrl: ButtonState,
     pub right_shift: ButtonState,
     pub right_alt: ButtonState,
+    pub right_super: ButtonState,
+    pub menu: ButtonState,
 
     // Accessories
     pub space: ButtonState,
@@ -61,12 +64,15 @@ impl KeyboardInput {
         self.left_ctrl.long_state();
         self.left_shift.long_state();
         self.left_alt.long_state();
+        self.left_super.long_state();
         self.right_ctrl.long_state();
         self.right_shift.long_state();
         self.right_alt.long_state();
+        self.right_super.long_state();
         self.space.long_state();
         self.escape.long_state();
         self.tab.long_state();
+        self.menu.long_state();
     }
 }
 
