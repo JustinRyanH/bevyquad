@@ -40,39 +40,34 @@ pub struct Mouse {
     pub middle: ButtonState,
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct KeyboardInput {
-    // Modifiers
-    pub left_ctrl: ButtonState,
-    pub left_shift: ButtonState,
-    pub left_alt: ButtonState,
-    pub left_super: ButtonState,
-    pub right_ctrl: ButtonState,
-    pub right_shift: ButtonState,
-    pub right_alt: ButtonState,
-    pub right_super: ButtonState,
-    pub menu: ButtonState,
+    pub keys: [ButtonState; 128],
+}
 
-    // Accessories
-    pub space: ButtonState,
-    pub escape: ButtonState,
-    pub tab: ButtonState,
+impl Default for KeyboardInput {
+    fn default() -> Self {
+        Self {
+            keys: [ButtonState::Up; 128],
+        }
+    }
 }
 
 impl KeyboardInput {
     pub fn long_state(&mut self) {
-        self.left_ctrl.long_state();
-        self.left_shift.long_state();
-        self.left_alt.long_state();
-        self.left_super.long_state();
-        self.right_ctrl.long_state();
-        self.right_shift.long_state();
-        self.right_alt.long_state();
-        self.right_super.long_state();
-        self.space.long_state();
-        self.escape.long_state();
-        self.tab.long_state();
-        self.menu.long_state();
+        self.keys.iter_mut().for_each(|state| state.long_state());
+    }
+
+    pub fn get(&self, key: KeyboardKey) -> ButtonState {
+        let index: usize = key.into();
+        self.keys[index]
+    }
+
+    pub fn set(&mut self, key: KeyboardKey, state: ButtonState) -> ButtonState {
+        let index: usize = key.into();
+        let old_state = self.keys[index];
+        self.keys[index] = state;
+        old_state
     }
 }
 
@@ -96,5 +91,134 @@ impl InputFrame {
         self.mouse.left.long_state();
         self.mouse.right.long_state();
         self.mouse.middle.long_state();
+    }
+}
+
+pub enum KeyboardKey {
+    Space = 0,
+    Apostrophe,
+    Comma,
+    Minus,
+    Period,
+    Slash,
+    Key0,
+    Key1,
+    Key2,
+    Key3,
+    Key4,
+    Key5,
+    Key6,
+    Key7,
+    Key8,
+    Key9,
+    Semicolon,
+    Equal,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
+    LeftBracket,
+    Backslash,
+    RightBracket,
+    GraveAccent,
+    World1,
+    World2,
+    Escape,
+    Enter,
+    Backspace,
+    Insert,
+    Delete,
+    Right,
+    Left,
+    Down,
+    Up,
+    PageUp,
+    PageDown,
+    Home,
+    End,
+    CapsLock,
+    ScrollLock,
+    NumLock,
+    PrintScreen,
+    Pause,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F16,
+    F17,
+    F18,
+    F19,
+    F20,
+    F21,
+    F22,
+    F23,
+    F24,
+    F25,
+    Kp0,
+    Kp1,
+    Kp2,
+    Kp3,
+    Kp4,
+    Kp5,
+    Kp6,
+    Kp7,
+    Kp8,
+    Kp9,
+    KpDecimal,
+    KpDivide,
+    KpMultiply,
+    KpSubtract,
+    KpAdd,
+    KpEnter,
+    KpEqual,
+    Tab,
+    LeftShift,
+    LeftControl,
+    LeftAlt,
+    LeftSuper,
+    RightShift,
+    RightControl,
+    RightAlt,
+    RightSuper,
+    Menu,
+}
+
+impl From<KeyboardKey> for usize {
+    fn from(val: KeyboardKey) -> Self {
+        val as usize
     }
 }

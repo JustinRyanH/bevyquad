@@ -5,7 +5,7 @@ use bevy_math::*;
 
 use miniquad::*;
 
-use crate::input::{ButtonState, InputFrame, KeyboardInput, Window};
+use crate::input::{ButtonState, InputFrame, Window};
 
 pub fn miniquad_runner(mut app: App) {
     let window_width = 1024;
@@ -29,18 +29,13 @@ pub fn miniquad_runner(mut app: App) {
     });
 }
 
-pub fn debug_input(frame_input: bevy_ecs::system::Res<InputFrame>) {
-    println!("{:?}", frame_input.as_ref());
-}
-
 #[derive(Default)]
 pub struct MiniquadPlugin;
 
 impl Plugin for MiniquadPlugin {
     fn build(&self, app: &mut App) {
         app.set_runner(miniquad_runner)
-            .init_resource::<InputFrame>()
-            .add_system(debug_input);
+            .init_resource::<InputFrame>();
     }
 }
 
@@ -135,19 +130,19 @@ impl EventHandlerFree for Stage {
     fn char_event(&mut self, _character: char, _keymods: KeyMods, _repeat: bool) {}
 
     fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
-        maps::set_keyboard(
-            &mut self.active_frame_input.keyboard,
-            keycode,
-            ButtonState::JustDown,
-        );
+        if let Some(keyboard_key) = maps::map_to_keyboard_key(keycode) {
+            self.active_frame_input
+                .keyboard
+                .set(keyboard_key, ButtonState::JustDown);
+        }
     }
 
     fn key_up_event(&mut self, keycode: KeyCode, _keymods: KeyMods) {
-        maps::set_keyboard(
-            &mut self.active_frame_input.keyboard,
-            keycode,
-            ButtonState::JustUp,
-        );
+        if let Some(keyboard_key) = maps::map_to_keyboard_key(keycode) {
+            self.active_frame_input
+                .keyboard
+                .set(keyboard_key, ButtonState::JustUp);
+        }
     }
 
     // Touch Events
