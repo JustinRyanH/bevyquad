@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum ButtonState {
     Up,
     JustUp,
@@ -14,14 +14,14 @@ impl Default for ButtonState {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Time {
     pub frame: usize,
     pub time_in_seconds_since_start: f64,
-    pub last_frame_time: f32,
+    pub last_frame_time: f64,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Mouse {
     pub pos: Vec2,
     pub left: ButtonState,
@@ -29,8 +29,7 @@ pub struct Mouse {
     pub middle: ButtonState,
 }
 
-#[derive(Debug, Default)]
-
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Keyboard {
     // Modifiers
     pub left_ctrl: ButtonState,
@@ -43,13 +42,13 @@ pub struct Keyboard {
     pub tab: ButtonState,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Window {
     pub width: f32,
     pub height: f32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct InputFrame {
     pub time: Time,
     pub window: Window,

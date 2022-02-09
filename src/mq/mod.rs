@@ -3,19 +3,32 @@ use bevy_math::*;
 
 use miniquad::*;
 
-use crate::input::InputFrame;
+use crate::input::{InputFrame, Window};
 
 pub fn miniquad_runner(mut app: App) {
+    let window_width = 1024;
+    let window_height = 768;
     let config = conf::Conf {
         window_title: "FlappyBird".to_string(),
-        window_width: 1024,
-        window_height: 768,
+        window_width,
+        window_height,
         ..Default::default()
     };
-    miniquad::start(config, |ctx| {
+    let first_input_frame = InputFrame {
+        window: Window {
+            width: window_width as f32,
+            height: window_height as f32,
+        },
+        ..Default::default()
+    };
+    miniquad::start(config, move |ctx| {
         app.insert_resource(ctx);
-        UserData::Free(Box::new(Stage::new(app)))
+        UserData::Free(Box::new(Stage::new(app, first_input_frame)))
     });
+}
+
+pub fn debug_input(frame_input: bevy_ecs::system::Res<InputFrame>) {
+    // println!("{:?}", frame_input.as_ref());
 }
 
 #[derive(Default)]
@@ -23,34 +36,48 @@ pub struct MiniquadPlugin;
 
 impl Plugin for MiniquadPlugin {
     fn build(&self, app: &mut App) {
-        app.set_runner(miniquad_runner);
+        app.set_runner(miniquad_runner)
+            .init_resource::<InputFrame>()
+            .add_system(debug_input);
     }
 }
 
 struct Stage {
     app: App,
     start_time: f64,
-    last_frame_time: f64,
-    current_frame_input: InputFrame,
+    active_frame_input: InputFrame,
     last_frame_input: InputFrame,
 }
 
 impl Stage {
-    pub fn new(app: App) -> Self {
+    pub fn new(app: App, input_frame: InputFrame) -> Self {
         Self {
             app,
             start_time: miniquad::date::now(),
-            last_frame_time: miniquad::date::now(),
-            current_frame_input: Default::default(),
-            last_frame_input: Default::default(),
+            active_frame_input: input_frame,
+            last_frame_input: input_frame,
         }
     }
 }
 
-impl Stage {}
+impl Stage {
+    pub fn begin_update(&mut self) {
+        let mut input_frame = self.app.world.get_resource_mut::<InputFrame>().unwrap();
+        self.last_frame_input = *input_frame.as_ref();
+        *input_frame = self.active_frame_input;
+
+        self.active_frame_input.time.frame += 1;
+        self.active_frame_input.time.time_in_seconds_since_start =
+            miniquad::date::now() - self.start_time;
+        self.active_frame_input.time.last_frame_time = miniquad::date::now();
+    }
+}
 
 impl EventHandlerFree for Stage {
-    fn update(&mut self) {}
+    fn update(&mut self) {
+        self.begin_update();
+        self.app.update()
+    }
 
     fn draw(&mut self) {
         let ctx = self
@@ -62,7 +89,10 @@ impl EventHandlerFree for Stage {
     }
 
     // Window Events
-    fn resize_event(&mut self, _width: f32, _heightt: f32) {}
+    fn resize_event(&mut self, width: f32, height: f32) {
+        self.active_frame_input.window.height = height;
+        self.active_frame_input.window.width = width;
+    }
 
     fn window_minimized_event(&mut self) {}
 
