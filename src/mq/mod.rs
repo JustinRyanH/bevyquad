@@ -1,9 +1,11 @@
+mod maps;
+
 use bevy_app::{App, Plugin};
 use bevy_math::*;
 
 use miniquad::*;
 
-use crate::input::{InputFrame, Window};
+use crate::input::{ButtonState, InputFrame, KeyboardInput, Window};
 
 pub fn miniquad_runner(mut app: App) {
     let window_width = 1024;
@@ -28,7 +30,7 @@ pub fn miniquad_runner(mut app: App) {
 }
 
 pub fn debug_input(frame_input: bevy_ecs::system::Res<InputFrame>) {
-    // println!("{:?}", frame_input.as_ref());
+    println!("{:?}", frame_input.as_ref());
 }
 
 #[derive(Default)]
@@ -70,6 +72,7 @@ impl Stage {
         self.active_frame_input.time.time_in_seconds_since_start =
             miniquad::date::now() - self.start_time;
         self.active_frame_input.time.last_frame_time = miniquad::date::now();
+        self.active_frame_input.long_state();
     }
 }
 
@@ -100,22 +103,52 @@ impl EventHandlerFree for Stage {
 
     // Mouse Events
 
-    fn mouse_motion_event(&mut self, _x: f32, _y: f32) {}
+    fn mouse_motion_event(&mut self, x: f32, y: f32) {
+        self.active_frame_input.mouse.pos = Vec2::new(x, y);
+    }
 
     fn mouse_wheel_event(&mut self, _x: f32, _y: f32) {}
 
-    fn mouse_button_down_event(&mut self, _button: MouseButton, _x: f32, _y: f32) {}
+    fn mouse_button_down_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.active_frame_input.mouse.pos = Vec2::new(x, y);
+        match button {
+            MouseButton::Left => self.active_frame_input.mouse.left = ButtonState::JustDown,
+            MouseButton::Right => self.active_frame_input.mouse.right = ButtonState::JustDown,
+            MouseButton::Middle => self.active_frame_input.mouse.middle = ButtonState::JustDown,
+            MouseButton::Unknown => {}
+        };
+    }
 
-    fn mouse_button_up_event(&mut self, _button: MouseButton, _x: f32, _y: f32) {}
+    fn mouse_button_up_event(&mut self, button: MouseButton, x: f32, y: f32) {
+        self.active_frame_input.mouse.pos = Vec2::new(x, y);
+        match button {
+            MouseButton::Left => self.active_frame_input.mouse.left = ButtonState::JustUp,
+            MouseButton::Right => self.active_frame_input.mouse.right = ButtonState::JustUp,
+            MouseButton::Middle => self.active_frame_input.mouse.middle = ButtonState::JustUp,
+            MouseButton::Unknown => {}
+        };
+    }
 
     fn raw_mouse_motion(&mut self, _dx: f32, _dy: f32) {}
 
     // Keyboard Events
     fn char_event(&mut self, _character: char, _keymods: KeyMods, _repeat: bool) {}
 
-    fn key_down_event(&mut self, _keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {}
+    fn key_down_event(&mut self, keycode: KeyCode, _keymods: KeyMods, _repeat: bool) {
+        maps::set_keyboard(
+            &mut self.active_frame_input.keyboard,
+            keycode,
+            ButtonState::JustDown,
+        );
+    }
 
-    fn key_up_event(&mut self, _keycode: KeyCode, _keymods: KeyMods) {}
+    fn key_up_event(&mut self, keycode: KeyCode, _keymods: KeyMods) {
+        maps::set_keyboard(
+            &mut self.active_frame_input.keyboard,
+            keycode,
+            ButtonState::JustUp,
+        );
+    }
 
     // Touch Events
     fn touch_event(&mut self, phase: TouchPhase, _id: u64, x: f32, y: f32) {
