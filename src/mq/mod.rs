@@ -1,7 +1,9 @@
 mod maps;
+pub mod shaders;
 mod shapes;
 mod text;
 
+use bevy_ecs::change_detection::Mut;
 pub use shapes::DebugShape2D;
 pub use text::DebugText;
 
@@ -51,15 +53,53 @@ struct Stage {
     start_time: f64,
     active_frame_input: InputFrame,
     last_frame_input: InputFrame,
+    // TODO: Move to Bevy
+    pipeline: miniquad::Pipeline,
+    bindings: miniquad::Bindings,
+}
+
+#[repr(C)]
+pub struct Vertex {
+    pos: Vec2,
 }
 
 impl Stage {
-    pub fn new(app: App, input_frame: InputFrame) -> Self {
+    pub fn new(mut app: App, input_frame: InputFrame) -> Self {
+        let (pipeline, bindings) = {
+            let mut ctx = app
+                .world
+                .get_resource_mut::<miniquad::Context>()
+                .expect("Context MUST be in the App Resources");
+
+            #[rustfmt::skip]
+            let vertices: [Vertex; 4] = [
+                Vertex { pos : Vec2::new(-0.5, -0.5 ) },
+                Vertex { pos : Vec2::new( 0.5, -0.5 ) },
+                Vertex { pos : Vec2::new( 0.5,  0.5 ) },
+                Vertex { pos : Vec2::new(-0.5,  0.5 ) },
+            ];
+
+            let vertex_buffer = Buffer::immutable(&mut ctx, BufferType::VertexBuffer, &vertices);
+
+            let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
+            let index_buffer = Buffer::immutable(&mut ctx, BufferType::IndexBuffer, &indices);
+
+            let bindings = Bindings {
+                vertex_buffers: vec![vertex_buffer],
+                index_buffer,
+                images: vec![],
+            };
+
+            (shaders::quad::pipeline(&mut ctx), bindings)
+        };
+
         Self {
             app,
             start_time: miniquad::date::now(),
             active_frame_input: input_frame,
             last_frame_input: input_frame,
+            pipeline,
+            bindings,
         }
     }
 }
@@ -76,6 +116,13 @@ impl Stage {
         self.active_frame_input.time.last_frame_time = miniquad::date::now();
         self.active_frame_input.long_state();
     }
+
+    fn get_context(&mut self) -> Mut<Context> {
+        self.app
+            .world
+            .get_resource_mut::<miniquad::Context>()
+            .expect("Context MUST be in the App Resources")
+    }
 }
 
 impl EventHandlerFree for Stage {
@@ -85,12 +132,23 @@ impl EventHandlerFree for Stage {
     }
 
     fn draw(&mut self) {
-        let ctx = self
-            .app
-            .world
-            .get_resource_mut::<miniquad::Context>()
-            .unwrap();
+        let pipeline = self.pipeline;
+        let bindings = self.bindings.clone();
+        let mut ctx = self.get_context();
+        // TODO: Get clear color from Resources
+        ctx.begin_default_pass(Default::default());
         ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
+
+        ctx.apply_pipeline(&pipeline);
+        ctx.apply_bindings(&bindings);
+        ctx.apply_uniforms(&shaders::quad::Uniform {
+            color: crate::prelude::Color::WHITE.into(),
+        });
+
+        ctx.draw(0, 6, 1);
+
+        ctx.end_render_pass();
+        ctx.commit_frame();
     }
 
     // Window Events
