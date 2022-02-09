@@ -1,4 +1,9 @@
 mod maps;
+mod shapes;
+mod text;
+
+pub use shapes::DebugShape2D;
+pub use text::DebugText;
 
 use bevy_app::{App, Plugin};
 use bevy_math::*;
@@ -35,6 +40,8 @@ pub struct MiniquadPlugin;
 impl Plugin for MiniquadPlugin {
     fn build(&self, app: &mut App) {
         app.set_runner(miniquad_runner)
+            .init_resource::<DebugShape2D>()
+            .init_resource::<DebugText>()
             .init_resource::<InputFrame>();
     }
 }
