@@ -1,3 +1,4 @@
+mod color;
 mod input;
 pub mod mq;
 
@@ -6,6 +7,7 @@ mod prelude {
     pub(crate) use bevy_ecs::prelude::*;
     pub(crate) use bevy_math::prelude::*;
 
+    pub use crate::color::*;
     pub use crate::input::*;
     pub use crate::mq::MiniquadPlugin;
 }
