@@ -14,6 +14,32 @@ use miniquad::*;
 
 use crate::input::{ButtonState, InputFrame, Window};
 
+#[derive(Debug, Clone)]
+pub struct SimpleMesh {
+    vertex_buffer: Buffer,
+    index_buffer: Buffer,
+}
+
+impl SimpleMesh {
+    pub fn new(ctx: &mut miniquad::Context, vertices: &[Vertex], indices: &[u16]) -> Self {
+        let vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, vertices);
+        let index_buffer = Buffer::immutable(ctx, BufferType::IndexBuffer, indices);
+        Self {
+            vertex_buffer,
+            index_buffer,
+        }
+    }
+
+    pub fn to_bindings(&self, images: impl Into<Option<Vec<Texture>>>) -> miniquad::Bindings {
+        let images = images.into().unwrap_or_default();
+        miniquad::Bindings {
+            vertex_buffers: vec![self.vertex_buffer],
+            index_buffer: self.index_buffer,
+            images,
+        }
+    }
+}
+
 pub fn miniquad_runner(mut app: App) {
     let window_width = 1024;
     let window_height = 768;
@@ -54,10 +80,11 @@ struct Stage {
     active_frame_input: InputFrame,
     last_frame_input: InputFrame,
     // TODO: Move to Bevy
+    mesh: SimpleMesh,
     pipeline: miniquad::Pipeline,
-    bindings: miniquad::Bindings,
 }
 
+#[derive(Debug, PartialEq)]
 #[repr(C)]
 pub struct Vertex {
     pos: Vec2,
@@ -65,7 +92,7 @@ pub struct Vertex {
 
 impl Stage {
     pub fn new(mut app: App, input_frame: InputFrame) -> Self {
-        let (pipeline, bindings) = {
+        let (pipeline, mesh) = {
             let mut ctx = app
                 .world
                 .get_resource_mut::<miniquad::Context>()
@@ -79,18 +106,11 @@ impl Stage {
                 Vertex { pos : Vec2::new(-0.5,  0.5 ) },
             ];
 
-            let vertex_buffer = Buffer::immutable(&mut ctx, BufferType::VertexBuffer, &vertices);
-
             let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-            let index_buffer = Buffer::immutable(&mut ctx, BufferType::IndexBuffer, &indices);
 
-            let bindings = Bindings {
-                vertex_buffers: vec![vertex_buffer],
-                index_buffer,
-                images: vec![],
-            };
+            let mesh = SimpleMesh::new(&mut ctx, vertices.as_slice(), indices.as_slice());
 
-            (shaders::quad::pipeline(&mut ctx), bindings)
+            (shaders::quad::pipeline(&mut ctx), mesh)
         };
 
         Self {
@@ -99,7 +119,7 @@ impl Stage {
             active_frame_input: input_frame,
             last_frame_input: input_frame,
             pipeline,
-            bindings,
+            mesh,
         }
     }
 }
@@ -133,7 +153,7 @@ impl EventHandlerFree for Stage {
 
     fn draw(&mut self) {
         let pipeline = self.pipeline;
-        let bindings = self.bindings.clone();
+        let bindings = self.mesh.to_bindings(None);
         let mut ctx = self.get_context();
         // TODO: Get clear color from Resources
         ctx.begin_default_pass(Default::default());
