@@ -3,7 +3,7 @@ pub mod shaders;
 mod shapes;
 mod text;
 
-use bevy_ecs::change_detection::Mut;
+use bevy_ecs::{change_detection::Mut, prelude::Component};
 pub use shapes::DebugShape2D;
 pub use text::DebugText;
 
@@ -14,7 +14,7 @@ use miniquad::*;
 
 use crate::input::{ButtonState, InputFrame, Window};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Component)]
 pub struct SimpleMesh {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
@@ -148,10 +148,11 @@ impl Stage {
 impl EventHandlerFree for Stage {
     fn update(&mut self) {
         self.begin_update();
-        self.app.update()
     }
 
     fn draw(&mut self) {
+        self.app.update();
+
         let pipeline = self.pipeline;
         let bindings = self.mesh.to_bindings(None);
         let mut ctx = self.get_context();
@@ -160,6 +161,7 @@ impl EventHandlerFree for Stage {
         ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
 
         ctx.apply_pipeline(&pipeline);
+
         ctx.apply_bindings(&bindings);
         ctx.apply_uniforms(&shaders::quad::Uniform {
             color: crate::prelude::Color::WHITE.into(),
