@@ -12,7 +12,10 @@ use bevy_math::*;
 
 use miniquad::*;
 
-use crate::input::{ButtonState, InputFrame, Window};
+use crate::{
+    input::{ButtonState, InputFrame, Window},
+    prelude::Color,
+};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
 pub struct RenderStage;
@@ -21,6 +24,15 @@ pub struct RenderStage;
 pub struct SimpleMesh {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
+}
+
+#[derive(Debug, Clone, Copy, Component)]
+pub struct MeshColor(pub Color);
+
+impl From<Color> for MeshColor {
+    fn from(v: Color) -> Self {
+        Self(v)
+    }
 }
 
 impl SimpleMesh {
@@ -45,7 +57,7 @@ impl SimpleMesh {
 
 pub fn main_pipeline(
     mut ctx: ResMut<miniquad::Context>,
-    mesh: Query<&SimpleMesh>,
+    mesh: Query<(&SimpleMesh, &MeshColor)>,
     pipeline: Res<shaders::quad::QuadPipeline>,
 ) {
     ctx.begin_default_pass(Default::default());
@@ -53,11 +65,11 @@ pub fn main_pipeline(
 
     ctx.apply_pipeline(pipeline.as_ref());
 
-    for mesh in mesh.iter() {
+    for (mesh, color) in mesh.iter() {
         let bindings = mesh.to_bindings(None);
         ctx.apply_bindings(&bindings);
         ctx.apply_uniforms(&shaders::quad::Uniform {
-            color: crate::prelude::Color::WHITE.into(),
+            color: color.0.into(),
         });
 
         ctx.draw(0, 6, 1);
@@ -79,7 +91,8 @@ pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
     let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
     let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
-    commands.spawn().insert(mesh);
+    let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
+    commands.spawn().insert_bundle((mesh, color));
 }
 
 pub fn miniquad_runner(mut app: App) {
