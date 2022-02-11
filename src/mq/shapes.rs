@@ -10,17 +10,17 @@ pub enum DrawType {
 }
 
 impl DebugShape2D {
-    pub fn draw_circle(&mut self, center: Vec2, radius: f32, draw_type: DrawType) {}
+    pub fn draw_circle(&mut self, _center: Vec2, _radius: f32, _draw_type: DrawType) {}
     pub fn draw_poly(
         &mut self,
-        center: Vec2,
-        sides: u8,
-        radius: f32,
-        rotation: f32,
-        draw_type: DrawType,
+        _center: Vec2,
+        _sides: u8,
+        _radius: f32,
+        _rotation: f32,
+        _draw_type: DrawType,
     ) {
     }
-    pub fn draw_rectangle(&mut self, center: Vec2, extends: Vec2, draw_type: DrawType) {}
-    pub fn draw_triangle(&mut self, v1: Vec2, v2: Vec2, v3: Vec2, draw_type: DrawType) {}
-    pub fn draw_line(&mut self, start: Vec2, end: Vec2, thickness: f32, color: Color) {}
+    pub fn draw_rectangle(&mut self, _center: Vec2, _extends: Vec2, _draw_type: DrawType) {}
+    pub fn draw_triangle(&mut self, _v1: Vec2, _v2: Vec2, _v3: Vec2, _draw_type: DrawType) {}
+    pub fn draw_line(&mut self, _start: Vec2, _end: Vec2, _thickness: f32, _color: Color) {}
 }

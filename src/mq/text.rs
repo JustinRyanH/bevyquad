@@ -34,5 +34,5 @@ impl Default for TextParams {
 pub struct DebugText;
 
 impl DebugText {
-    pub fn draw(text: &str, position: Vec2, params: TextParams) {}
+    pub fn draw(_text: &str, _position: Vec2, _params: TextParams) {}
 }
