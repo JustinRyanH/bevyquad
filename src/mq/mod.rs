@@ -87,21 +87,24 @@ mod systems {
         },
     };
 
+    fn get_projection(camera: Query<&Projection>) -> Mat4 {
+        let Projection {
+            aspect_ratio,
+            field_of_view,
+        } = camera.get_single().ok().cloned().unwrap_or_default();
+        let top = field_of_view / 2.0;
+        let right = top * aspect_ratio;
+        Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR)
+    }
+
     pub fn main_pipeline(
         mut ctx: ResMut<miniquad::Context>,
         mesh: Query<(&SimpleMesh, &MeshColor)>,
         camera: Query<&Projection>,
         pipeline: Res<QuadPipeline>,
     ) {
-        let (top, right) = {
-            let Projection {
-                aspect_ratio,
-                field_of_view,
-            } = camera.get_single().ok().cloned().unwrap_or_default();
+        let projection = get_projection(camera);
 
-            let top = field_of_view / 2.0;
-            (top, top * aspect_ratio)
-        };
         ctx.begin_default_pass(Default::default());
         ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
 
@@ -112,7 +115,7 @@ mod systems {
             ctx.apply_bindings(&bindings);
             ctx.apply_uniforms(&Uniform {
                 color: color.0.into(),
-                projection: Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR),
+                projection,
                 ..Default::default()
             });
 
