@@ -3,16 +3,19 @@ pub mod shaders;
 mod shapes;
 mod text;
 
-use bevy_ecs::{change_detection::Mut, prelude::Component};
 pub use shapes::DebugShape2D;
 pub use text::DebugText;
 
-use bevy_app::{App, Plugin};
+use bevy_app::{App, CoreStage, Plugin};
+use bevy_ecs::prelude::*;
 use bevy_math::*;
 
 use miniquad::*;
 
 use crate::input::{ButtonState, InputFrame, Window};
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
+pub struct RenderStage;
 
 #[derive(Debug, Clone, Component)]
 pub struct SimpleMesh {
@@ -38,6 +41,30 @@ impl SimpleMesh {
             images,
         }
     }
+}
+
+pub fn main_pipeline(
+    mut ctx: ResMut<miniquad::Context>,
+    mesh: Query<&SimpleMesh>,
+    pipeline: Res<miniquad::Pipeline>,
+) {
+    ctx.begin_default_pass(Default::default());
+    ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
+
+    ctx.apply_pipeline(&pipeline);
+
+    for mesh in mesh.iter() {
+        let bindings = mesh.to_bindings(None);
+        ctx.apply_bindings(&bindings);
+        ctx.apply_uniforms(&shaders::quad::Uniform {
+            color: crate::prelude::Color::WHITE.into(),
+        });
+
+        ctx.draw(0, 6, 1);
+    }
+
+    ctx.end_render_pass();
+    ctx.commit_frame();
 }
 
 pub fn miniquad_runner(mut app: App) {
@@ -70,7 +97,13 @@ impl Plugin for MiniquadPlugin {
         app.set_runner(miniquad_runner)
             .init_resource::<DebugShape2D>()
             .init_resource::<DebugText>()
-            .init_resource::<InputFrame>();
+            .init_resource::<InputFrame>()
+            .add_stage_after(
+                CoreStage::PostUpdate,
+                RenderStage,
+                SystemStage::single_threaded(),
+            )
+            .add_system_to_stage(RenderStage, main_pipeline);
     }
 }
 
@@ -79,9 +112,6 @@ struct Stage {
     start_time: f64,
     active_frame_input: InputFrame,
     last_frame_input: InputFrame,
-    // TODO: Move to Bevy
-    mesh: SimpleMesh,
-    pipeline: miniquad::Pipeline,
 }
 
 #[derive(Debug, PartialEq)]
@@ -108,18 +138,18 @@ impl Stage {
 
             let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-            let mesh = SimpleMesh::new(&mut ctx, vertices.as_slice(), indices.as_slice());
+            let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
 
             (shaders::quad::pipeline(&mut ctx), mesh)
         };
+        app.insert_resource(pipeline);
+        app.world.spawn().insert(mesh);
 
         Self {
             app,
             start_time: miniquad::date::now(),
             active_frame_input: input_frame,
             last_frame_input: input_frame,
-            pipeline,
-            mesh,
         }
     }
 }
@@ -152,25 +182,6 @@ impl EventHandlerFree for Stage {
 
     fn draw(&mut self) {
         self.app.update();
-
-        let pipeline = self.pipeline;
-        let bindings = self.mesh.to_bindings(None);
-        let mut ctx = self.get_context();
-        // TODO: Get clear color from Resources
-        ctx.begin_default_pass(Default::default());
-        ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
-
-        ctx.apply_pipeline(&pipeline);
-
-        ctx.apply_bindings(&bindings);
-        ctx.apply_uniforms(&shaders::quad::Uniform {
-            color: crate::prelude::Color::WHITE.into(),
-        });
-
-        ctx.draw(0, 6, 1);
-
-        ctx.end_render_pass();
-        ctx.commit_frame();
     }
 
     // Window Events
