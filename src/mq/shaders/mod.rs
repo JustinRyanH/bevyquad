@@ -1,4 +1,6 @@
 pub mod quad {
+    use std::ops::Deref;
+
     use bevy_math::Vec4;
     use miniquad::*;
 
@@ -48,17 +50,30 @@ pub mod quad {
         }
     }
 
-    pub fn new(ctx: &mut miniquad::Context) -> Shader {
+    fn build_shader(ctx: &mut miniquad::Context) -> Shader {
         Shader::new(ctx, VERTEX, FRAGMENT, meta()).unwrap()
     }
 
+    pub struct QuadPipeline(pub Pipeline);
+    impl Deref for QuadPipeline {
+        type Target = miniquad::Pipeline;
+
+        fn deref(&self) -> &Self::Target {
+            &self.0
+        }
+    }
+
     pub fn pipeline(ctx: &mut miniquad::Context) -> Pipeline {
-        let shader = new(ctx);
+        let shader = build_shader(ctx);
         Pipeline::new(
             ctx,
             &[BufferLayout::default()],
             &[VertexAttribute::new("pos", VertexFormat::Float2)],
             shader,
         )
+    }
+
+    pub fn build(ctx: &mut miniquad::Context) -> QuadPipeline {
+        QuadPipeline(pipeline(ctx))
     }
 }

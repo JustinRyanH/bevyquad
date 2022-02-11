@@ -46,12 +46,12 @@ impl SimpleMesh {
 pub fn main_pipeline(
     mut ctx: ResMut<miniquad::Context>,
     mesh: Query<&SimpleMesh>,
-    pipeline: Res<miniquad::Pipeline>,
+    pipeline: Res<shaders::quad::QuadPipeline>,
 ) {
     ctx.begin_default_pass(Default::default());
     ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
 
-    ctx.apply_pipeline(&pipeline);
+    ctx.apply_pipeline(pipeline.as_ref());
 
     for mesh in mesh.iter() {
         let bindings = mesh.to_bindings(None);
@@ -65,6 +65,21 @@ pub fn main_pipeline(
 
     ctx.end_render_pass();
     ctx.commit_frame();
+}
+
+pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
+    #[rustfmt::skip]
+    let vertices: [Vertex; 4] = [
+        Vertex { pos : Vec2::new(-0.5, -0.5 ) },
+        Vertex { pos : Vec2::new( 0.5, -0.5 ) },
+        Vertex { pos : Vec2::new( 0.5,  0.5 ) },
+        Vertex { pos : Vec2::new(-0.5,  0.5 ) },
+    ];
+
+    let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
+
+    let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
+    commands.spawn().insert(mesh);
 }
 
 pub fn miniquad_runner(mut app: App) {
@@ -98,6 +113,7 @@ impl Plugin for MiniquadPlugin {
             .init_resource::<DebugShape2D>()
             .init_resource::<DebugText>()
             .init_resource::<InputFrame>()
+            .add_startup_system(load_square) // TODO: Remove me
             .add_stage_after(
                 CoreStage::PostUpdate,
                 RenderStage,
@@ -122,28 +138,14 @@ pub struct Vertex {
 
 impl Stage {
     pub fn new(mut app: App, input_frame: InputFrame) -> Self {
-        let (pipeline, mesh) = {
+        let pipeline = {
             let mut ctx = app
                 .world
                 .get_resource_mut::<miniquad::Context>()
                 .expect("Context MUST be in the App Resources");
-
-            #[rustfmt::skip]
-            let vertices: [Vertex; 4] = [
-                Vertex { pos : Vec2::new(-0.5, -0.5 ) },
-                Vertex { pos : Vec2::new( 0.5, -0.5 ) },
-                Vertex { pos : Vec2::new( 0.5,  0.5 ) },
-                Vertex { pos : Vec2::new(-0.5,  0.5 ) },
-            ];
-
-            let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-            let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
-
-            (shaders::quad::pipeline(&mut ctx), mesh)
+            shaders::quad::build(&mut ctx)
         };
         app.insert_resource(pipeline);
-        app.world.spawn().insert(mesh);
 
         Self {
             app,
@@ -165,13 +167,6 @@ impl Stage {
             miniquad::date::now() - self.start_time;
         self.active_frame_input.time.last_frame_time = miniquad::date::now();
         self.active_frame_input.long_state();
-    }
-
-    fn get_context(&mut self) -> Mut<Context> {
-        self.app
-            .world
-            .get_resource_mut::<miniquad::Context>()
-            .expect("Context MUST be in the App Resources")
     }
 }
 
