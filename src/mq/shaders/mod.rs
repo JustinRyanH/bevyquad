@@ -24,7 +24,7 @@ pub mod quad {
     varying lowp vec4 color;
 
     void main() {
-        gl_Position = vec4(position, 1);
+        gl_Position = Projection * Model * vec4(position, 1);
         color = InColor;
     }
     "#;
@@ -43,7 +43,7 @@ pub mod quad {
                 uniforms: vec![
                     UniformDesc::new("InColor", UniformType::Float4),
                     UniformDesc::new("Model", UniformType::Mat4),
-                    UniformDesc::new("Project", UniformType::Mat4),
+                    UniformDesc::new("Projection", UniformType::Mat4),
                 ],
             },
             images: vec![],

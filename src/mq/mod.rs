@@ -16,11 +16,29 @@ pub use text::DebugText;
 #[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
 pub struct RenderStage;
 
+#[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
+pub struct InputProcessing;
+
 pub mod components {
     use crate::prelude::*;
     use miniquad::*;
 
     use super::shaders::Vertex;
+
+    #[derive(Debug, Clone, Copy, Component)]
+    pub struct Projection {
+        pub aspect_ratio: f32,
+        pub field_of_view: f32,
+    }
+
+    impl Default for Projection {
+        fn default() -> Self {
+            Self {
+                aspect_ratio: 1.0,
+                field_of_view: 45.0,
+            }
+        }
+    }
 
     #[derive(Debug, Clone, Component)]
     pub struct SimpleMesh {
@@ -62,7 +80,7 @@ mod systems {
     use crate::prelude::*;
 
     use super::{
-        components::{MeshColor, SimpleMesh},
+        components::{MeshColor, Projection, SimpleMesh},
         shaders::{
             quad::{QuadPipeline, Uniform},
             Vertex,
@@ -72,8 +90,18 @@ mod systems {
     pub fn main_pipeline(
         mut ctx: ResMut<miniquad::Context>,
         mesh: Query<(&SimpleMesh, &MeshColor)>,
+        camera: Query<&Projection>,
         pipeline: Res<QuadPipeline>,
     ) {
+        let (top, right) = {
+            let Projection {
+                aspect_ratio,
+                field_of_view,
+            } = camera.get_single().ok().cloned().unwrap_or_default();
+
+            let top = field_of_view / 2.0;
+            (top, top * aspect_ratio)
+        };
         ctx.begin_default_pass(Default::default());
         ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
 
@@ -84,7 +112,7 @@ mod systems {
             ctx.apply_bindings(&bindings);
             ctx.apply_uniforms(&Uniform {
                 color: color.0.into(),
-                projection: Mat4::orthographic_rh_gl(-1., 1., -1., 1., Z_NEAR, Z_FAR),
+                projection: Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR),
                 ..Default::default()
             });
 
@@ -93,6 +121,13 @@ mod systems {
 
         ctx.end_render_pass();
         ctx.commit_frame();
+    }
+
+    pub fn gather_aspect_ratio(frame_input: Res<FrameInput>, mut query: Query<&mut Projection>) {
+        let window = frame_input.window;
+        query.iter_mut().for_each(|mut projection| {
+            projection.aspect_ratio = window.width / window.height;
+        });
     }
 
     pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
@@ -109,6 +144,7 @@ mod systems {
         let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
         let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
         commands.spawn().insert_bundle((mesh, color));
+        commands.spawn_bundle((Transform::identity(), Projection::default()));
     }
 }
 
@@ -144,11 +180,17 @@ impl Plugin for MiniquadPlugin {
             .init_resource::<DebugText>()
             .init_resource::<FrameInput>()
             .add_startup_system(systems::load_square) // TODO: Remove me
+            .add_stage_before(
+                CoreStage::PreUpdate,
+                InputProcessing,
+                SystemStage::parallel(),
+            )
             .add_stage_after(
                 CoreStage::PostUpdate,
                 RenderStage,
                 SystemStage::single_threaded(),
             )
+            .add_system_to_stage(InputProcessing, systems::gather_aspect_ratio)
             .add_system_to_stage(RenderStage, systems::main_pipeline);
     }
 }
