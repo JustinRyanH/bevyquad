@@ -14,8 +14,10 @@ use miniquad::*;
 
 use crate::{
     input::{ButtonState, InputFrame, Window},
-    prelude::Color,
+    prelude::{Color, Z_FAR, Z_NEAR},
 };
+
+use self::shaders::Vertex;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
 pub struct RenderStage;
@@ -70,6 +72,8 @@ pub fn main_pipeline(
         ctx.apply_bindings(&bindings);
         ctx.apply_uniforms(&shaders::quad::Uniform {
             color: color.0.into(),
+            projection: Mat4::orthographic_rh_gl(-1., 1., -1., 1., Z_NEAR, Z_FAR),
+            ..Default::default()
         });
 
         ctx.draw(0, 6, 1);
@@ -82,10 +86,10 @@ pub fn main_pipeline(
 pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
     #[rustfmt::skip]
     let vertices: [Vertex; 4] = [
-        Vertex { pos : Vec2::new(-0.5, -0.5 ) },
-        Vertex { pos : Vec2::new( 0.5, -0.5 ) },
-        Vertex { pos : Vec2::new( 0.5,  0.5 ) },
-        Vertex { pos : Vec2::new(-0.5,  0.5 ) },
+        Vertex { position: Vec3::new(-0.5, -0.5, 0.0 ) },
+        Vertex { position: Vec3::new( 0.5, -0.5, 0.0 ) },
+        Vertex { position: Vec3::new( 0.5,  0.5, 0.0 ) },
+        Vertex { position: Vec3::new(-0.5,  0.5, 0.0 ) },
     ];
 
     let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
@@ -141,12 +145,6 @@ struct Stage {
     start_time: f64,
     active_frame_input: InputFrame,
     last_frame_input: InputFrame,
-}
-
-#[derive(Debug, PartialEq)]
-#[repr(C)]
-pub struct Vertex {
-    pos: Vec2,
 }
 
 impl Stage {

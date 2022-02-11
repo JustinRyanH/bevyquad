@@ -3,6 +3,9 @@ mod input;
 pub mod mq;
 
 mod prelude {
+    pub const Z_NEAR: f32 = 0.01;
+    pub const Z_FAR: f32 = 10000.0;
+
     pub(crate) use bevy_app::prelude::*;
     pub(crate) use bevy_math::prelude::*;
     pub(crate) use bevy_transform::prelude::*;
