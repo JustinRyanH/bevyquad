@@ -3,56 +3,57 @@ pub mod shaders;
 mod shapes;
 mod text;
 
-pub use shapes::DebugShape2D;
-pub use text::DebugText;
-
 use bevy_app::{App, CoreStage, Plugin};
 use bevy_ecs::prelude::*;
 use bevy_math::*;
-
 use miniquad::*;
 
-use crate::{
-    input::{ButtonState, FrameInput, Window},
-    prelude::Color,
-};
+use crate::input::{ButtonState, FrameInput, Window};
 
-use self::shaders::Vertex;
+pub use shapes::DebugShape2D;
+pub use text::DebugText;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, StageLabel)]
 pub struct RenderStage;
 
-#[derive(Debug, Clone, Component)]
-pub struct SimpleMesh {
-    vertex_buffer: Buffer,
-    index_buffer: Buffer,
-}
+pub mod components {
+    use crate::prelude::*;
+    use miniquad::*;
 
-#[derive(Debug, Clone, Copy, Component)]
-pub struct MeshColor(pub Color);
+    use super::shaders::Vertex;
 
-impl From<Color> for MeshColor {
-    fn from(v: Color) -> Self {
-        Self(v)
+    #[derive(Debug, Clone, Component)]
+    pub struct SimpleMesh {
+        vertex_buffer: Buffer,
+        index_buffer: Buffer,
     }
-}
 
-impl SimpleMesh {
-    pub fn new(ctx: &mut miniquad::Context, vertices: &[Vertex], indices: &[u16]) -> Self {
-        let vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, vertices);
-        let index_buffer = Buffer::immutable(ctx, BufferType::IndexBuffer, indices);
-        Self {
-            vertex_buffer,
-            index_buffer,
+    #[derive(Debug, Clone, Copy, Component)]
+    pub struct MeshColor(pub Color);
+
+    impl From<Color> for MeshColor {
+        fn from(v: Color) -> Self {
+            Self(v)
         }
     }
 
-    pub fn to_bindings(&self, images: impl Into<Option<Vec<Texture>>>) -> miniquad::Bindings {
-        let images = images.into().unwrap_or_default();
-        miniquad::Bindings {
-            vertex_buffers: vec![self.vertex_buffer],
-            index_buffer: self.index_buffer,
-            images,
+    impl SimpleMesh {
+        pub fn new(ctx: &mut miniquad::Context, vertices: &[Vertex], indices: &[u16]) -> Self {
+            let vertex_buffer = Buffer::immutable(ctx, BufferType::VertexBuffer, vertices);
+            let index_buffer = Buffer::immutable(ctx, BufferType::IndexBuffer, indices);
+            Self {
+                vertex_buffer,
+                index_buffer,
+            }
+        }
+
+        pub fn to_bindings(&self, images: impl Into<Option<Vec<Texture>>>) -> miniquad::Bindings {
+            let images = images.into().unwrap_or_default();
+            miniquad::Bindings {
+                vertex_buffers: vec![self.vertex_buffer],
+                index_buffer: self.index_buffer,
+                images,
+            }
         }
     }
 }
@@ -61,11 +62,11 @@ mod systems {
     use crate::prelude::*;
 
     use super::{
+        components::{MeshColor, SimpleMesh},
         shaders::{
             quad::{QuadPipeline, Uniform},
             Vertex,
         },
-        MeshColor, SimpleMesh,
     };
 
     pub fn main_pipeline(
