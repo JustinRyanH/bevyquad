@@ -14,7 +14,7 @@ use miniquad::*;
 
 use crate::{
     input::{ButtonState, FrameInput, Window},
-    prelude::{Color, Z_FAR, Z_NEAR},
+    prelude::Color,
 };
 
 use self::shaders::Vertex;
@@ -57,47 +57,58 @@ impl SimpleMesh {
     }
 }
 
-pub fn main_pipeline(
-    mut ctx: ResMut<miniquad::Context>,
-    mesh: Query<(&SimpleMesh, &MeshColor)>,
-    pipeline: Res<shaders::quad::QuadPipeline>,
-    frame_input: Res<FrameInput>,
-) {
-    ctx.begin_default_pass(Default::default());
-    ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
+mod systems {
+    use crate::prelude::*;
 
-    ctx.apply_pipeline(pipeline.as_ref());
+    use super::{
+        shaders::{
+            quad::{QuadPipeline, Uniform},
+            Vertex,
+        },
+        MeshColor, SimpleMesh,
+    };
 
-    for (mesh, color) in mesh.iter() {
-        let bindings = mesh.to_bindings(None);
-        ctx.apply_bindings(&bindings);
-        ctx.apply_uniforms(&shaders::quad::Uniform {
-            color: color.0.into(),
-            projection: Mat4::orthographic_rh_gl(-1., 1., -1., 1., Z_NEAR, Z_FAR),
-            ..Default::default()
-        });
+    pub fn main_pipeline(
+        mut ctx: ResMut<miniquad::Context>,
+        mesh: Query<(&SimpleMesh, &MeshColor)>,
+        pipeline: Res<QuadPipeline>,
+    ) {
+        ctx.begin_default_pass(Default::default());
+        ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
 
-        ctx.draw(0, 6, 1);
+        ctx.apply_pipeline(pipeline.as_ref());
+
+        for (mesh, color) in mesh.iter() {
+            let bindings = mesh.to_bindings(None);
+            ctx.apply_bindings(&bindings);
+            ctx.apply_uniforms(&Uniform {
+                color: color.0.into(),
+                projection: Mat4::orthographic_rh_gl(-1., 1., -1., 1., Z_NEAR, Z_FAR),
+                ..Default::default()
+            });
+
+            ctx.draw(0, 6, 1);
+        }
+
+        ctx.end_render_pass();
+        ctx.commit_frame();
     }
 
-    ctx.end_render_pass();
-    ctx.commit_frame();
-}
+    pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
+        #[rustfmt::skip]
+        let vertices: [Vertex; 4] = [
+            Vertex { position: Vec3::new(-0.5, -0.5, 0.0 ) },
+            Vertex { position: Vec3::new( 0.5, -0.5, 0.0 ) },
+            Vertex { position: Vec3::new( 0.5,  0.5, 0.0 ) },
+            Vertex { position: Vec3::new(-0.5,  0.5, 0.0 ) },
+        ];
 
-pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
-    #[rustfmt::skip]
-    let vertices: [Vertex; 4] = [
-        Vertex { position: Vec3::new(-0.5, -0.5, 0.0 ) },
-        Vertex { position: Vec3::new( 0.5, -0.5, 0.0 ) },
-        Vertex { position: Vec3::new( 0.5,  0.5, 0.0 ) },
-        Vertex { position: Vec3::new(-0.5,  0.5, 0.0 ) },
-    ];
+        let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-    let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-    let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
-    let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
-    commands.spawn().insert_bundle((mesh, color));
+        let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
+        let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
+        commands.spawn().insert_bundle((mesh, color));
+    }
 }
 
 pub fn miniquad_runner(mut app: App) {
@@ -131,13 +142,13 @@ impl Plugin for MiniquadPlugin {
             .init_resource::<DebugShape2D>()
             .init_resource::<DebugText>()
             .init_resource::<FrameInput>()
-            .add_startup_system(load_square) // TODO: Remove me
+            .add_startup_system(systems::load_square) // TODO: Remove me
             .add_stage_after(
                 CoreStage::PostUpdate,
                 RenderStage,
                 SystemStage::single_threaded(),
             )
-            .add_system_to_stage(RenderStage, main_pipeline);
+            .add_system_to_stage(RenderStage, systems::main_pipeline);
     }
 }
 

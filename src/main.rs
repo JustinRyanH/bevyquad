@@ -7,6 +7,7 @@ mod prelude {
     pub const Z_FAR: f32 = 10000.0;
 
     pub(crate) use bevy_app::prelude::*;
+    pub(crate) use bevy_ecs::prelude::*;
     pub(crate) use bevy_math::prelude::*;
     pub(crate) use bevy_transform::prelude::*;
 
