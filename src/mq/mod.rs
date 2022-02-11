@@ -13,7 +13,7 @@ use bevy_math::*;
 use miniquad::*;
 
 use crate::{
-    input::{ButtonState, InputFrame, Window},
+    input::{ButtonState, FrameInput, Window},
     prelude::{Color, Z_FAR, Z_NEAR},
 };
 
@@ -61,6 +61,7 @@ pub fn main_pipeline(
     mut ctx: ResMut<miniquad::Context>,
     mesh: Query<(&SimpleMesh, &MeshColor)>,
     pipeline: Res<shaders::quad::QuadPipeline>,
+    frame_input: Res<FrameInput>,
 ) {
     ctx.begin_default_pass(Default::default());
     ctx.clear(Some((0.13, 0.137, 0.137, 1.0)), None, None);
@@ -108,7 +109,7 @@ pub fn miniquad_runner(mut app: App) {
         window_height,
         ..Default::default()
     };
-    let first_input_frame = InputFrame {
+    let first_frame_input = FrameInput {
         window: Window {
             width: window_width as f32,
             height: window_height as f32,
@@ -117,7 +118,7 @@ pub fn miniquad_runner(mut app: App) {
     };
     miniquad::start(config, move |ctx| {
         app.insert_resource(ctx);
-        UserData::Free(Box::new(Stage::new(app, first_input_frame)))
+        UserData::Free(Box::new(Stage::new(app, first_frame_input)))
     });
 }
 
@@ -129,7 +130,7 @@ impl Plugin for MiniquadPlugin {
         app.set_runner(miniquad_runner)
             .init_resource::<DebugShape2D>()
             .init_resource::<DebugText>()
-            .init_resource::<InputFrame>()
+            .init_resource::<FrameInput>()
             .add_startup_system(load_square) // TODO: Remove me
             .add_stage_after(
                 CoreStage::PostUpdate,
@@ -143,12 +144,12 @@ impl Plugin for MiniquadPlugin {
 struct Stage {
     app: App,
     start_time: f64,
-    active_frame_input: InputFrame,
-    last_frame_input: InputFrame,
+    active_frame_input: FrameInput,
+    last_frame_input: FrameInput,
 }
 
 impl Stage {
-    pub fn new(mut app: App, input_frame: InputFrame) -> Self {
+    pub fn new(mut app: App, frame_input: FrameInput) -> Self {
         let pipeline = {
             let mut ctx = app
                 .world
@@ -161,17 +162,17 @@ impl Stage {
         Self {
             app,
             start_time: miniquad::date::now(),
-            active_frame_input: input_frame,
-            last_frame_input: input_frame,
+            active_frame_input: frame_input,
+            last_frame_input: frame_input,
         }
     }
 }
 
 impl Stage {
     pub fn begin_update(&mut self) {
-        let mut input_frame = self.app.world.get_resource_mut::<InputFrame>().unwrap();
-        self.last_frame_input = *input_frame.as_ref();
-        *input_frame = self.active_frame_input;
+        let mut frame_input = self.app.world.get_resource_mut::<FrameInput>().unwrap();
+        self.last_frame_input = *frame_input.as_ref();
+        *frame_input = self.active_frame_input;
 
         self.active_frame_input.time.frame += 1;
         self.active_frame_input.time.time_in_seconds_since_start =

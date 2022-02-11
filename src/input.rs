@@ -78,14 +78,14 @@ pub struct Window {
 }
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct InputFrame {
+pub struct FrameInput {
     pub time: Time,
     pub window: Window,
     pub mouse: Mouse,
     pub keyboard: KeyboardInput,
 }
 
-impl InputFrame {
+impl FrameInput {
     pub fn long_state(&mut self) {
         self.keyboard.long_state();
         self.mouse.left.long_state();
