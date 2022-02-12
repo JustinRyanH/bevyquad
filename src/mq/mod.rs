@@ -97,9 +97,9 @@ mod systems {
         Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR)
     }
 
-    pub fn main_pipeline(
+    pub fn quad_render_pass(
         mut ctx: ResMut<miniquad::Context>,
-        mesh: Query<(&SimpleMesh, &MeshColor)>,
+        mesh: Query<(&SimpleMesh, Option<&MeshColor>)>,
         camera: Query<&Projection>,
         pipeline: Res<QuadPipeline>,
     ) {
@@ -112,9 +112,10 @@ mod systems {
 
         for (mesh, color) in mesh.iter() {
             let bindings = mesh.to_bindings(None);
+            let color: Vec4 = color.map(|color| color.0).unwrap_or(Color::WHITE).into();
             ctx.apply_bindings(&bindings);
             ctx.apply_uniforms(&Uniform {
-                color: color.0.into(),
+                color,
                 projection,
                 ..Default::default()
             });
@@ -123,7 +124,6 @@ mod systems {
         }
 
         ctx.end_render_pass();
-        ctx.commit_frame();
     }
 
     pub fn gather_aspect_ratio(frame_input: Res<FrameInput>, mut query: Query<&mut Projection>) {
@@ -194,7 +194,7 @@ impl Plugin for MiniquadPlugin {
                 SystemStage::single_threaded(),
             )
             .add_system_to_stage(InputProcessing, systems::gather_aspect_ratio)
-            .add_system_to_stage(RenderStage, systems::main_pipeline);
+            .add_system_to_stage(RenderStage, systems::quad_render_pass);
     }
 }
 
@@ -246,6 +246,12 @@ impl EventHandlerFree for Stage {
 
     fn draw(&mut self) {
         self.app.update();
+        let mut ctx = self
+            .app
+            .world
+            .get_resource_mut::<miniquad::Context>()
+            .expect("Miniquad Context is required");
+        ctx.commit_frame();
     }
 
     // Window Events
