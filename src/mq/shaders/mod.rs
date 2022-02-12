@@ -1,9 +1,10 @@
-use bevy_math::Vec3;
+use bevy_math::{Vec2, Vec3};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Default)]
 #[repr(C)]
 pub struct Vertex {
     pub position: Vec3,
+    pub uv: Vec2,
 }
 
 pub mod quad {
@@ -16,24 +17,30 @@ pub mod quad {
 
     pub const VERTEX: &str = r#"#version 100
     attribute vec3 position;
-    
+    attribute vec2 uv;
+
     uniform vec4 InColor;
     uniform mat4 Model;
     uniform mat4 Projection;
 
     varying lowp vec4 color;
+    varying lowp vec2 texcoord;
 
     void main() {
         gl_Position = Projection * Model * vec4(position, 1);
         color = InColor;
+        texcoord = uv;
     }
     "#;
 
     pub const FRAGMENT: &str = r#"#version 100
     varying lowp vec4 color;
+    varying lowp vec2 texcoord;
+
+    uniform sampler2D tex;
 
     void main() {
-        gl_FragColor = color;
+        gl_FragColor = texture2D(tex, texcoord) * color;
     }
     "#;
 
@@ -46,7 +53,7 @@ pub mod quad {
                     UniformDesc::new("Projection", UniformType::Mat4),
                 ],
             },
-            images: vec![],
+            images: vec!["tex".to_string()],
         }
     }
 
@@ -86,7 +93,10 @@ pub mod quad {
         Pipeline::new(
             ctx,
             &[BufferLayout::default()],
-            &[VertexAttribute::new("position", VertexFormat::Float3)],
+            &[
+                VertexAttribute::new("position", VertexFormat::Float3),
+                VertexAttribute::new("uv", VertexFormat::Float2),
+            ],
             shader,
         )
     }
