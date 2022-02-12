@@ -46,6 +46,9 @@ pub mod components {
         index_buffer: Buffer,
     }
 
+    #[derive(Debug, Clone, Component)]
+    pub struct SimpleMeshTexture(pub miniquad::Texture);
+
     #[derive(Debug, Clone, Copy, Component)]
     pub struct MeshColor(pub Color);
 
@@ -80,7 +83,7 @@ mod systems {
     use crate::prelude::*;
 
     use super::{
-        components::{MeshColor, Projection, SimpleMesh},
+        components::{MeshColor, Projection, SimpleMesh, SimpleMeshTexture},
         shaders::{
             quad::{QuadPipeline, Uniform},
             Vertex,
@@ -99,7 +102,7 @@ mod systems {
 
     pub fn quad_render_pass(
         mut ctx: ResMut<miniquad::Context>,
-        mesh: Query<(&SimpleMesh, Option<&MeshColor>)>,
+        mesh: Query<(&SimpleMesh, Option<&MeshColor>, Option<&SimpleMeshTexture>)>,
         camera: Query<&Projection>,
         pipeline: Res<QuadPipeline>,
     ) {
@@ -110,8 +113,9 @@ mod systems {
 
         ctx.apply_pipeline(pipeline.as_ref());
 
-        for (mesh, color) in mesh.iter() {
-            let bindings = mesh.to_bindings(None);
+        for (mesh, color, texture) in mesh.iter() {
+            let texture = texture.map(|m| vec![m.0]);
+            let bindings = mesh.to_bindings(texture);
             let color: Vec4 = color.map(|color| color.0).unwrap_or(Color::WHITE).into();
             ctx.apply_bindings(&bindings);
             ctx.apply_uniforms(&Uniform {
