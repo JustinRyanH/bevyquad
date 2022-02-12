@@ -49,6 +49,18 @@ pub mod components {
     #[derive(Debug, Clone, Component)]
     pub struct SimpleMeshTexture(pub miniquad::Texture);
 
+    impl SimpleMeshTexture {
+        pub fn from_data(
+            context: &mut miniquad::Context,
+            bytes: &[u8],
+            params: TextureParams,
+        ) -> Self {
+            Self(miniquad::Texture::from_data_and_format(
+                context, bytes, params,
+            ))
+        }
+    }
+
     #[derive(Debug, Clone, Copy, Component)]
     pub struct MeshColor(pub Color);
 
@@ -154,11 +166,19 @@ mod systems {
             0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
             0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
         ];
-        let texture = miniquad::Texture::from_rgba8(&mut ctx, 4, 4, &pixels);
 
         let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
         let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
-        let tex: SimpleMeshTexture = SimpleMeshTexture(texture);
+        let tex: SimpleMeshTexture = SimpleMeshTexture::from_data(
+            &mut ctx,
+            &pixels,
+            miniquad::TextureParams {
+                width: 4,
+                height: 4,
+                filter: miniquad::FilterMode::Nearest,
+                ..Default::default()
+            },
+        );
         commands.spawn().insert_bundle((mesh, color, tex));
         commands.spawn_bundle((Transform::identity(), Projection::default()));
     }
