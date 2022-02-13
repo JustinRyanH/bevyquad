@@ -44,7 +44,6 @@ pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
     ];
 
     let mesh = SimpleMesh::new(&mut ctx, &vertices, &indices);
-    let color: MeshColor = Color::hsl(301., 0.58, 0.25).into();
     let tex: SimpleMeshTexture = SimpleMeshTexture::from_data(
         &mut ctx,
         &pixels,
@@ -55,18 +54,38 @@ pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
             ..Default::default()
         },
     );
-    commands
-        .spawn()
-        .insert_bundle((mesh, color, tex, Transform::identity()));
-    let camera_transform = Transform::from_scale(Vec3::new(10., 10., 1.0));
+
+    for i in 0..10 {
+        let t = i as f32 * 0.3;
+        let t_sin = t.sin() as f32;
+
+        let color: MeshColor = Color::hsl(t_sin.abs() * 360., 0.58, 0.25).into();
+        let translation = Vec3::new(t_sin * 3.0, (t * 3.0).cos() as f32 * 3.0, 1.0);
+        let transform = Transform::from_translation(translation);
+        commands
+            .spawn()
+            .insert_bundle((mesh.clone(), color, tex.clone(), transform));
+    }
+    let camera_transform = Transform::from_scale(Vec3::new(5.0, 5.0, 1.0));
     commands.spawn_bundle((camera_transform, Projection::default()));
 }
 
-pub fn wave_quad(frame_input: Res<FrameInput>, mut query: Query<&mut Transform>) {
+pub fn wave_quad(
+    frame_input: Res<FrameInput>,
+    mut query: Query<(&mut Transform, &mut MeshColor), With<SimpleMesh>>,
+) {
     let t = frame_input.time.time_in_seconds_since_start;
-    query.iter_mut().for_each(|mut transform| {
-        transform.translation = Vec3::new(t.sin() as f32 * 3.0, t.cos() as f32 * 3.0, 1.0)
-    });
+    query
+        .iter_mut()
+        .enumerate()
+        .for_each(|(index, (mut transform, mut color))| {
+            let t = t + index as f64;
+            let t_sin = t.sin() as f32;
+            transform.translation =
+                Vec3::new(t.sin() as f32 * 3.0, (t * 3.0).cos() as f32 * 3.0, 1.0);
+            let new_color = Color::hsl(t_sin.abs() * 360., 0.58, 0.25);
+            color.0 = new_color;
+        });
 }
 
 fn main() {

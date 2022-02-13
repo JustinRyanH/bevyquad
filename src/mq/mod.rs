@@ -120,7 +120,12 @@ mod systems {
 
     pub fn quad_render_pass(
         mut ctx: ResMut<miniquad::Context>,
-        mesh: Query<(&SimpleMesh, Option<&MeshColor>, Option<&SimpleMeshTexture>)>,
+        mesh: Query<(
+            &SimpleMesh,
+            &Transform,
+            Option<&MeshColor>,
+            Option<&SimpleMeshTexture>,
+        )>,
         camera: Query<(&Projection, &Transform)>,
         pipeline: Res<QuadPipeline>,
     ) {
@@ -131,7 +136,7 @@ mod systems {
 
         ctx.apply_pipeline(pipeline.as_ref());
 
-        for (mesh, color, texture) in mesh.iter() {
+        for (mesh, transform, color, texture) in mesh.iter() {
             let texture = texture.map(|m| vec![m.0]);
             let bindings = mesh.to_bindings(texture);
             let color: Vec4 = color.map(|color| color.0).unwrap_or(Color::WHITE).into();
@@ -139,7 +144,7 @@ mod systems {
             ctx.apply_uniforms(&Uniform {
                 color,
                 projection,
-                ..Default::default()
+                model: transform.compute_matrix(),
             });
 
             ctx.draw(0, 6, 1);
