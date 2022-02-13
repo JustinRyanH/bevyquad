@@ -102,20 +102,26 @@ mod systems {
         },
     };
 
-    fn get_projection(camera: Query<&Projection>) -> Mat4 {
+    fn get_projection(camera: Query<(&Projection, &Transform)>) -> Mat4 {
+        let (projection, transform) = camera
+            .get_single()
+            .ok()
+            .map(|(p, t)| (*p, *t))
+            .unwrap_or((Projection::default(), Transform::identity()));
+
         let Projection {
             aspect_ratio,
             field_of_view,
-        } = camera.get_single().ok().cloned().unwrap_or_default();
+        } = projection;
         let top = field_of_view / 2.0;
         let right = top * aspect_ratio;
-        Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR)
+        Mat4::orthographic_rh_gl(-right, right, -top, top, -1., Z_FAR) * transform.compute_matrix()
     }
 
     pub fn quad_render_pass(
         mut ctx: ResMut<miniquad::Context>,
         mesh: Query<(&SimpleMesh, Option<&MeshColor>, Option<&SimpleMeshTexture>)>,
-        camera: Query<&Projection>,
+        camera: Query<(&Projection, &Transform)>,
         pipeline: Res<QuadPipeline>,
     ) {
         let projection = get_projection(camera);

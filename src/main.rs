@@ -21,6 +21,9 @@ mod prelude {
 
 use crate::prelude::*;
 
+#[derive(Clone, Copy, Debug, Component)]
+pub struct WaveQuad;
+
 pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
     use mq::shaders::Vertex;
     #[rustfmt::skip]
@@ -52,8 +55,18 @@ pub fn load_square(mut commands: Commands, mut ctx: ResMut<miniquad::Context>) {
             ..Default::default()
         },
     );
-    commands.spawn().insert_bundle((mesh, color, tex));
-    commands.spawn_bundle((Transform::identity(), Projection::default()));
+    commands
+        .spawn()
+        .insert_bundle((mesh, color, tex, Transform::identity()));
+    let camera_transform = Transform::from_scale(Vec3::new(10., 10., 1.0));
+    commands.spawn_bundle((camera_transform, Projection::default()));
+}
+
+pub fn wave_quad(frame_input: Res<FrameInput>, mut query: Query<&mut Transform>) {
+    let t = frame_input.time.time_in_seconds_since_start;
+    query.iter_mut().for_each(|mut transform| {
+        transform.translation = Vec3::new(t.sin() as f32 * 3.0, t.cos() as f32 * 3.0, 1.0)
+    });
 }
 
 fn main() {
@@ -61,5 +74,6 @@ fn main() {
         .add_plugin(TransformPlugin)
         .add_plugin(MiniquadPlugin::default())
         .add_startup_system(load_square)
+        .add_system_to_stage(CoreStage::Update, wave_quad)
         .run();
 }
